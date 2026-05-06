@@ -1,0 +1,4 @@
+{
+  "target_column": "next_sla_violation_any_h5",
+  "split_strategy": "stratified_time"
+}

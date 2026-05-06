@@ -1,0 +1,176 @@
+﻿settings:
+  simulation_time: 2000
+  num_clients: 3000
+  limit_closest_base_stations: 7
+  baseline_file: baseline.yml
+  statistics_params:
+    warmup_ratio: 0.05
+    cooldown_ratio: 0.05
+    x:
+      min: -850
+      max: 850
+    y:
+      min: -850
+      max: 850
+  logging: False
+  log_file: output_light_realistic_highact.txt
+  latency_params:
+    time_unit_ms: 0.1
+    request_setup_mode: none
+    attach_ms: 0.05
+    auth_ms: 0.05
+    pdu_session_ms: 0.05
+    admission_base_ms: 0.01
+    admission_per_connected_user_ms: 0.0015
+    admission_per_bs_load_ms: 0.04
+    core_base_ms: 0.025
+    core_load_factor_ms: 0.04
+    edge_base_ms: 0.025
+    edge_load_factor_ms: 0.04
+    handover_penalty_ms: 0.08
+
+  plotting_params:
+    plotting: True
+    plot_save: True
+    plot_show: False
+    plot_file: output_light_realistic_highact.png
+    plot_file_dpi: 300
+    scatter_size: 15
+
+slices:
+  URLLC:
+    delay_tolerance: 1.0
+    qos_class: 1
+    bandwidth_guaranteed: 30000
+    bandwidth_max: 60000000
+    client_weight: 0.10
+    threshold: 0.98
+    usage_pattern:
+      distribution: randint
+      params:
+        - 30000
+        - 250000
+  eMBB:
+    delay_tolerance: 100
+    qos_class: 4
+    bandwidth_guaranteed: 100000
+    bandwidth_max: 90000000
+    client_weight: 0.65
+    threshold: 0.85
+    usage_pattern:
+      distribution: randint
+      params:
+        - 3000000
+        - 30000000
+  mMTC:
+    delay_tolerance: 500
+    qos_class: 8
+    bandwidth_guaranteed: 5000
+    bandwidth_max: 40000000
+    client_weight: 0.25
+    threshold: 0.75
+    usage_pattern:
+      distribution: randint
+      params:
+        - 10000
+        - 150000
+
+base_stations:
+  - x: 0
+    y: 0
+    coverage: 300
+    capacity_bandwidth: 80000000
+    ratios:
+      URLLC: 0.18
+      eMBB: 0.62
+      mMTC: 0.20
+  - x: 433
+    y: 250
+    coverage: 300
+    capacity_bandwidth: 65000000
+    ratios:
+      URLLC: 0.16
+      eMBB: 0.64
+      mMTC: 0.20
+  - x: 433
+    y: -250
+    coverage: 300
+    capacity_bandwidth: 65000000
+    ratios:
+      URLLC: 0.16
+      eMBB: 0.64
+      mMTC: 0.20
+  - x: 0
+    y: -500
+    coverage: 300
+    capacity_bandwidth: 65000000
+    ratios:
+      URLLC: 0.16
+      eMBB: 0.64
+      mMTC: 0.20
+  - x: -433
+    y: -250
+    coverage: 300
+    capacity_bandwidth: 65000000
+    ratios:
+      URLLC: 0.16
+      eMBB: 0.64
+      mMTC: 0.20
+  - x: -433
+    y: 250
+    coverage: 300
+    capacity_bandwidth: 65000000
+    ratios:
+      URLLC: 0.16
+      eMBB: 0.64
+      mMTC: 0.20
+  - x: 0
+    y: 500
+    coverage: 300
+    capacity_bandwidth: 65000000
+    ratios:
+      URLLC: 0.16
+      eMBB: 0.64
+      mMTC: 0.20
+
+mobility_patterns:
+  normal_btw_0_1000:
+    distribution: normal
+    params:
+      - 0
+      - 1
+    client_weight: 0.6
+  basic:
+    distribution: randint
+    params:
+      - -1
+      - 1
+    client_weight: 0.4
+
+clients:
+  placement:
+    mode: balanced_hex_cell
+    radius_factor: 0.82
+    shuffle: true
+  location:
+    x:
+      distribution: normal
+      params:
+        - 0
+        - 260
+    y:
+      distribution: normal
+      params:
+        - 0
+        - 260
+  usage:
+    distribution: randint
+    params:
+      - 0
+      - 50000
+  usage_frequency:
+    distribution: randint
+    params:
+      - 55000
+      - 70000
+    divide_scale: 100000

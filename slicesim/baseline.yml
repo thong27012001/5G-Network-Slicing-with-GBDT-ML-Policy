@@ -1,0 +1,74 @@
+﻿baseline:
+
+  scheduling:
+    share_mode: weighted_user
+    waiting_time_boost: 1.0
+    qos_priority_boost: 1.0
+    max_waiting_ratio: 3.0
+    first_service_priority:
+      enabled: true
+      slices:
+        - URLLC
+      unserved_boost: 4.0
+      waiting_boost: 2.0
+      admission_wait_discount: 0.35
+      admission_guard_cap: 1.0
+
+    deadline_priority:
+      enabled: true
+      slices:
+        - URLLC
+      post_first_service_only: true
+      min_elapsed_ratio: 0.15
+      max_elapsed_ratio: 1.0
+      elapsed_pressure_weight: 0.70
+      remaining_pressure_weight: 0.30
+      elapsed_boost: 3.0
+      remaining_boost: 1.5
+      max_remaining_cycles: 4.0
+
+    immediate_service:
+      enabled: true
+      qos_threshold: 2
+
+  admission:
+    policy: latency_aware_guaranteed_bandwidth
+    use_bandwidth_guaranteed: true
+    guaranteed_bw_factor: 1.0
+    latency_guard_enabled: true
+    latency_theta:
+      default: 1.0
+      URLLC: 0.7
+      eMBB: 0.9
+      mMTC: 1.1
+    predicted_wait_base_cycles: 1.0
+    predicted_wait_per_user_cycles: 0.15
+    predicted_wait_load_scale: 1.0
+
+    allow_alternate_bs_retry: true
+
+    use_bandwidth_max_cap: true
+
+  latency:
+    time_unit_ms: 1.0
+
+    request_setup_mode: none
+    attach_ms: 0.5
+    auth_ms: 0.5
+    pdu_session_ms: 0.5
+    admission_base_ms: 0.1
+    admission_per_connected_user_ms: 0.02
+    admission_per_bs_load_ms: 0.5
+    core_base_ms: 0.25
+    core_load_factor_ms: 0.5
+    edge_base_ms: 0.25
+    edge_load_factor_ms: 0.5
+    handover_penalty_ms: 1.0
+
+  slices:
+    URLLC:
+      immediate_service_override: true
+    eMBB:
+      immediate_service_override: false
+    mMTC:
+      immediate_service_override: false

@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.env
+.DS_Store
+
+FINAL_OUTPUT_*/
+artifacts/
+final_output/
+Outputs/
+*.log
+*.tmp

@@ -1,0 +1,207 @@
+{
+  "dataset": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-main\\artifacts\\multihorizon_training\\datasets_anyh_135\\train_gbdt_anyh5_v2.csv",
+  "horizon": 5,
+  "target_mode": "any_in_horizon",
+  "dataset_version": "v2",
+  "state_sources": {
+    "light-realistic": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-main\\final_output\\output_light-realistic_26-04-26\\01_output_simulation\\baseline_run\\baseline_states.csv",
+    "heavy-realistic": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-main\\final_output\\output_heavy-realistic_26-04-26\\01_output_simulation\\baseline_run\\baseline_states.csv"
+  },
+  "sample_weight_mode": "class_balanced",
+  "calibration_method": "isotonic",
+  "threshold_tuning_enabled": true,
+  "notes": "multi-horizon GBDT submodel",
+  "target_column": "next_sla_violation_any_h5",
+  "split_strategy": "stratified_time",
+  "test_size": 0.2,
+  "random_state": 42,
+  "excluded_feature_prefixes": [
+    "current_sla_"
+  ],
+  "dropped_feature_columns": [],
+  "calibration": {
+    "enabled": true,
+    "method": "isotonic",
+    "cv": 5,
+    "reason": "ok"
+  },
+  "threshold_tuning": {
+    "enabled": true,
+    "threshold_min": 0.2,
+    "threshold_max": 0.8,
+    "threshold_steps": 61,
+    "cost_by_slice": {
+      "URLLC": {
+        "fn": 8.0,
+        "fp": 1.0
+      },
+      "eMBB": {
+        "fn": 3.0,
+        "fp": 1.0
+      },
+      "mMTC": {
+        "fn": 1.5,
+        "fp": 2.0
+      }
+    },
+    "slices": {
+      "URLLC": {
+        "threshold": 0.34,
+        "cost": 14.0,
+        "fn_cost": 8.0,
+        "fp_cost": 1.0,
+        "fn": 0,
+        "fp": 14,
+        "tp": 546,
+        "tn": 0,
+        "support": 560
+      },
+      "eMBB": {
+        "threshold": 0.5,
+        "cost": 0.0,
+        "fn_cost": 3.0,
+        "fp_cost": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "tp": 0,
+        "tn": 1106,
+        "support": 1106
+      },
+      "mMTC": {
+        "threshold": 0.5,
+        "cost": 0.0,
+        "fn_cost": 1.5,
+        "fp_cost": 2.0,
+        "fn": 0,
+        "fp": 0,
+        "tp": 0,
+        "tn": 1106,
+        "support": 1106
+      }
+    },
+    "threshold_by_slice": {
+      "URLLC": 0.34,
+      "eMBB": 0.5,
+      "mMTC": 0.5
+    },
+    "default_threshold": 0.5
+  },
+  "transition_reweight": {
+    "enabled": true,
+    "multiplier": 3.0,
+    "reference_column": "current_sla_violation",
+    "transition_rows_train": 602,
+    "transition_rate_train": 0.11025641025641025
+  },
+  "split_info": {
+    "split_strategy": "stratified_time",
+    "grouping_columns": [
+      "scenario_name",
+      "slice_name"
+    ],
+    "min_positive_count_test": 8,
+    "min_positive_rate_test": 0.05,
+    "max_test_size_fraction": 0.4,
+    "test_size_baseline": 0.2,
+    "slice_summaries": [
+      {
+        "scenario_name": "heavy-realistic",
+        "slice_name": "URLLC",
+        "guard_status": "ok_stratified",
+        "test_windows": 40,
+        "total_windows": 196,
+        "train_rows": 1092,
+        "test_rows": 280,
+        "test_positive_rows": 266,
+        "test_positive_rate": 0.95,
+        "train_time_min": 3.0,
+        "train_time_max": 158.0,
+        "test_time_min": 159.0,
+        "test_time_max": 198.0
+      },
+      {
+        "scenario_name": "heavy-realistic",
+        "slice_name": "eMBB",
+        "guard_status": "degraded_no_positive_in_tail",
+        "test_windows": 79,
+        "total_windows": 196,
+        "train_rows": 819,
+        "test_rows": 553,
+        "test_positive_rows": 0,
+        "test_positive_rate": 0.0,
+        "train_time_min": 3.0,
+        "train_time_max": 119.0,
+        "test_time_min": 120.0,
+        "test_time_max": 198.0
+      },
+      {
+        "scenario_name": "heavy-realistic",
+        "slice_name": "mMTC",
+        "guard_status": "degraded_no_positive_in_tail",
+        "test_windows": 79,
+        "total_windows": 196,
+        "train_rows": 819,
+        "test_rows": 553,
+        "test_positive_rows": 0,
+        "test_positive_rate": 0.0,
+        "train_time_min": 3.0,
+        "train_time_max": 119.0,
+        "test_time_min": 120.0,
+        "test_time_max": 198.0
+      },
+      {
+        "scenario_name": "light-realistic",
+        "slice_name": "URLLC",
+        "guard_status": "ok_stratified",
+        "test_windows": 40,
+        "total_windows": 196,
+        "train_rows": 1092,
+        "test_rows": 280,
+        "test_positive_rows": 280,
+        "test_positive_rate": 1.0,
+        "train_time_min": 3.0,
+        "train_time_max": 158.0,
+        "test_time_min": 159.0,
+        "test_time_max": 198.0
+      },
+      {
+        "scenario_name": "light-realistic",
+        "slice_name": "eMBB",
+        "guard_status": "degraded_no_positive_in_tail",
+        "test_windows": 79,
+        "total_windows": 196,
+        "train_rows": 819,
+        "test_rows": 553,
+        "test_positive_rows": 0,
+        "test_positive_rate": 0.0,
+        "train_time_min": 3.0,
+        "train_time_max": 119.0,
+        "test_time_min": 120.0,
+        "test_time_max": 198.0
+      },
+      {
+        "scenario_name": "light-realistic",
+        "slice_name": "mMTC",
+        "guard_status": "degraded_no_positive_in_tail",
+        "test_windows": 79,
+        "total_windows": 196,
+        "train_rows": 819,
+        "test_rows": 553,
+        "test_positive_rows": 0,
+        "test_positive_rate": 0.0,
+        "train_time_min": 3.0,
+        "train_time_max": 119.0,
+        "test_time_min": 120.0,
+        "test_time_max": 198.0
+      }
+    ],
+    "random_state": 42
+  },
+  "decision_thresholds_by_slice": {
+    "URLLC": 0.34,
+    "eMBB": 0.5,
+    "mMTC": 0.5
+  },
+  "decision_threshold_default": 0.5,
+  "below_threshold_action_scale": 0.25
+}
