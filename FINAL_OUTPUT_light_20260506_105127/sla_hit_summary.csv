@@ -1,0 +1,7 @@
+metric,slice_name,baseline,ml_policy,threshold,threshold_unit,rule
+delay_hit_percentage,URLLC,0.75,1.0,0.06512059826773423,ms,avg_completion_latency_ms <= baseline_p75_by_slice
+throughput_sla_hit_percentage,URLLC,1.0,1.0,0.95,ratio,completion_ratio >= 0.95
+delay_hit_percentage,eMBB,0.7501249375312344,0.920039980009995,11.998266684737825,ms,avg_completion_latency_ms <= baseline_p75_by_slice
+throughput_sla_hit_percentage,eMBB,0.33983008495752126,0.5797101449275363,0.95,ratio,completion_ratio >= 0.95
+delay_hit_percentage,mMTC,0.7496503496503496,0.5678321678321678,0.2978384336723587,ms,avg_completion_latency_ms <= baseline_p75_by_slice
+throughput_sla_hit_percentage,mMTC,1.0,1.0,0.95,ratio,completion_ratio >= 0.95
