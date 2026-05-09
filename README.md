@@ -14,7 +14,7 @@ For each scenario, the main script runs two simulations with the same seed:
 2. `ML Policy`: closed-loop GBDT SLA-risk predictor + controller + forecasting broker.
 
 The generated output folder contains simulation maps, KPI comparison plots,
-CSV reports, and SLA hit percentage plots.
+CSV reports, and SLA-style auxiliary plots.
 
 ## Project Workflow
 
@@ -123,23 +123,27 @@ Important files inside the output folder:
 ```text
 baseline_simulation_map.png
 ml_policy_simulation_map.png
+baseline_output.txt
+ml_policy_output.txt
 baseline_vs_ml_global_kpis.png
 baseline_vs_ml_per_slice_bars.png
 baseline_vs_ml_timeseries.png
 ml_action_distribution.png
-delay_hit_percentage.png
-throughput_sla_hit_percentage.png
+delay_hit_sla_tolerance.png
+delay_hit_relative_p75.png
+completion_ratio_hit.png
+resource_utilization_cdf.png
 global_kpi_comparison.csv
 per_slice_comparison.csv
 resource_allocation_summary.csv
 ml_action_ratio_timeseries.csv
-sla_hit_summary.csv
+sla_style_kpi_definitions.md
 baseline_vs_ml_report.md
 RUN_SUMMARY.md
 ```
 
 The `baseline_run/` and `ml_run/` subfolders also contain raw state, prediction,
-action, and client-level CSV files.
+action, client-level CSV files, and their own legacy-style `output.txt` logs.
 
 ## Policy Summary
 
@@ -150,6 +154,7 @@ The ML policy is closed-loop: each simulation window is measured, converted into
 features, passed through the trained GBDT SLA-risk predictor, and translated into
 runtime resource-control actions by the controller and broker.
 
-The main trade-off to inspect is throughput improvement versus p95/tail latency.
-The included SLA hit plots help show per-slice behavior for latency and
-completion-ratio requirements.
+The main trade-off to inspect is throughput/resource-usage improvement versus
+p95/tail latency and fairness. `delay_hit_sla_tolerance.png` is the SLA-aligned
+delay-hit chart. `delay_hit_relative_p75.png` is only a relative comparison
+against baseline p75 latency, not a contractual SLA metric.

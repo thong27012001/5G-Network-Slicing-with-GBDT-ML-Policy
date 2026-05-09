@@ -1766,6 +1766,7 @@ def main() -> None:
         seed=args.seed,
         render_graph=True,
         graph_policy_label="Baseline Policy",
+        log_path=baseline_dir / "output.txt",
     )
 
     print(f"Running ML closed-loop scenario from {config_path} ...")
@@ -1781,6 +1782,7 @@ def main() -> None:
         broker_preset=args.broker_preset,
         render_graph=True,
         graph_policy_label=f"ML Policy ({args.controller_preset})",
+        log_path=ml_dir / "output.txt",
     )
 
     baseline_state = _read_csv(baseline_paths["raw_state_path"])
@@ -1904,6 +1906,18 @@ def main() -> None:
         guardrail_payload = evaluate_strict_guardrails(output_dir)
         guardrail_json_path, guardrail_md_path = _write_guardrail_report(output_dir, guardrail_payload)
 
+    sla_style_plot_paths: list[Path] = []
+    try:
+        from tools.export_sla_kpi_plots import SCENARIO_DELAY_TOLERANCE_MS, export_for_run
+
+        sla_style_plot_paths = export_for_run(
+            output_dir,
+            SCENARIO_DELAY_TOLERANCE_MS.copy(),
+            "scenario_yaml",
+        )
+    except Exception as exc:
+        print(f"- SLA-style KPI plots skipped: {exc}")
+
     print("\nComparison completed.")
     print(f"- Global comparison CSV: {global_comparison_csv}")
     print(f"- Per-slice comparison CSV: {per_slice_comparison_csv}")
@@ -1919,10 +1933,14 @@ def main() -> None:
     print(f"- ML action distribution plot: {plot_action_distribution_path}")
     print(f"- Report JSON: {report_json_path}")
     print(f"- Report Markdown: {report_md_path}")
+    print(f"- Baseline log: {baseline_paths.get('log_path', baseline_dir / 'output.txt')}")
+    print(f"- ML policy log: {ml_paths.get('log_path', ml_dir / 'output.txt')}")
     if args.strict_guardrail:
         print(f"- Strict guardrail JSON: {guardrail_json_path}")
         print(f"- Strict guardrail Markdown: {guardrail_md_path}")
         print(f"- Strict guardrail passed: {guardrail_payload['passed']}")
+    for plot_path in sla_style_plot_paths:
+        print(f"- SLA-style KPI artifact: {plot_path}")
 
     if args.pipeline_output_root:
         pipeline_output_dir = organize_pipeline_outputs(

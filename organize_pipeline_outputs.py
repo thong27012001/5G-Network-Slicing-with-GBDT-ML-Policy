@@ -334,6 +334,11 @@ def organize_pipeline_outputs(
         "baseline_vs_ml_per_slice_bars_improvement_heatmap.png",
         "baseline_vs_ml_timeseries.png",
         "ml_action_distribution.png",
+        "completion_ratio_hit.png",
+        "delay_hit_sla_tolerance.png",
+        "delay_hit_relative_p75.png",
+        "resource_utilization_cdf.png",
+        "sla_style_kpi_definitions.md",
     ]
     for filename in comparison_files:
         _copy_file(comparison_dir / filename, comparison_dir_out)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -19,6 +21,57 @@ from integration.simulation_adapter import (
 from ml.feature_builder import add_temporal_features
 from ml.feature_schema import TEMPORAL_LAGS, infer_temporal_feature_columns
 from ml.predictor import GBDTPredictor
+
+
+@contextmanager
+def _legacy_output_log(log_path: str | Path | None):
+    """Enable the simulator's legacy logging stream for one online run."""
+    if log_path is None:
+        yield None
+        return
+
+    log_path = Path(log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    root_logger = logging.getLogger()
+    previous_disable_level = logging.root.manager.disable
+    previous_level = root_logger.level
+    previous_handlers = list(root_logger.handlers)
+    file_handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+    file_handler.setFormatter(logging.Formatter("%(message)s"))
+
+    for handler in previous_handlers:
+        root_logger.removeHandler(handler)
+    root_logger.addHandler(file_handler)
+    root_logger.setLevel(logging.INFO)
+    logging.disable(logging.NOTSET)
+    try:
+        yield log_path
+    finally:
+        root_logger.removeHandler(file_handler)
+        file_handler.close()
+        for handler in previous_handlers:
+            root_logger.addHandler(handler)
+        root_logger.setLevel(previous_level)
+        logging.disable(previous_disable_level)
+
+
+def _write_legacy_run_summary(context) -> None:
+    """Write the same end-of-run client/stat summary used by slicesim.__main__."""
+    for client in context.clients:
+        logging.info(client)
+        logging.info(f"\tTotal connected time: {client.total_connected_time:>5}")
+        logging.info(f"\tTotal unconnected time: {client.total_unconnected_time:>5}")
+        logging.info(f"\tTotal request count: {client.total_request_count:>5}")
+        logging.info(f"\tTotal consume time: {client.total_consume_time:>5}")
+        logging.info(f"\tTotal usage: {client.total_usage:>5}")
+        logging.info(f"\tTotal completed requests: {client.total_completed_requests:>5}")
+        logging.info(f"\tTotal latency (ms): {client.total_latency_ms:>8.3f}")
+        logging.info(f"\tTotal max latency (ms): {client.max_latency_ms:>8.3f}")
+        logging.info(f"\tTotal latency violations: {client.latency_violation_count:>5}")
+        logging.info("")
+
+    logging.info(context.stats.get_stats())
 
 
 def build_controller(controller_type: str = "gbdt", preset_name: str = "balanced"):
@@ -107,6 +160,7 @@ def run_online_closed_loop(
     render_graph: bool = False,
     graph_output_path: str | Path | None = None,
     graph_policy_label: str = "ML Policy",
+    log_path: str | Path | None = None,
 ) -> dict[str, Path]:
     """Chạy simulator theo kiểu online, dự đoán risk của window kế tiếp và áp action ngay lập tức."""
     adapter = OnlineSimulationAdapter(config_path, sla_path, seed=seed)
@@ -122,44 +176,48 @@ def run_online_closed_loop(
     state_frames: list[pd.DataFrame] = []
     raw_state_frames: list[pd.DataFrame] = []
 
-    while adapter.has_next_window():
-        state_window = adapter.run_one_window()
-        if state_window.empty:
-            continue
-        raw_state_frames.append(state_window)
-        history.append(state_window)
-        state_for_prediction = _prepare_prediction_window(
-            history,
-            current_time=state_window["time"].iloc[0],
-            feature_columns=predictor.feature_columns,
-        )
-        if state_for_prediction.empty:
-            state_frames.append(state_window)
-            continue
-
-        prediction_window = predictor.predict(state_for_prediction)
-        effective_time = int(state_window["time"].iloc[0]) + 1
-        if broker is not None:
-            broker_decision = broker.decide(
-                state_df=state_for_prediction,
-                history_df=history.combined(),
-                prediction_df=prediction_window,
-                effective_time=effective_time,
+    with _legacy_output_log(log_path) as resolved_log_path:
+        while adapter.has_next_window():
+            state_window = adapter.run_one_window()
+            if state_window.empty:
+                continue
+            raw_state_frames.append(state_window)
+            history.append(state_window)
+            state_for_prediction = _prepare_prediction_window(
+                history,
+                current_time=state_window["time"].iloc[0],
+                feature_columns=predictor.feature_columns,
             )
-            action_window = broker_decision.actions
-            broker_forecast_frames.append(broker_decision.forecasts)
-            broker_feedback_frames.append(broker_decision.feedback)
-        else:
-            action_window = controller.decide(
-                state_for_prediction,
-                prediction_window,
-                effective_time=effective_time,
-            )
-        adapter.apply_actions(action_window)
+            if state_for_prediction.empty:
+                state_frames.append(state_window)
+                continue
 
-        state_frames.append(state_for_prediction)
-        prediction_frames.append(prediction_window)
-        action_frames.append(action_window)
+            prediction_window = predictor.predict(state_for_prediction)
+            effective_time = int(state_window["time"].iloc[0]) + 1
+            if broker is not None:
+                broker_decision = broker.decide(
+                    state_df=state_for_prediction,
+                    history_df=history.combined(),
+                    prediction_df=prediction_window,
+                    effective_time=effective_time,
+                )
+                action_window = broker_decision.actions
+                broker_forecast_frames.append(broker_decision.forecasts)
+                broker_feedback_frames.append(broker_decision.feedback)
+            else:
+                action_window = controller.decide(
+                    state_for_prediction,
+                    prediction_window,
+                    effective_time=effective_time,
+                )
+            adapter.apply_actions(action_window)
+
+            state_frames.append(state_for_prediction)
+            prediction_frames.append(prediction_window)
+            action_frames.append(action_window)
+
+        if resolved_log_path is not None:
+            _write_legacy_run_summary(adapter.context)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -219,6 +277,8 @@ def run_online_closed_loop(
     }
     if policy_graph_path is not None:
         result["policy_graph_path"] = policy_graph_path
+    if log_path is not None:
+        result["log_path"] = Path(log_path)
     return result
 
 
@@ -230,16 +290,21 @@ def run_online_baseline(
     render_graph: bool = False,
     graph_output_path: str | Path | None = None,
     graph_policy_label: str = "Baseline Policy",
+    log_path: str | Path | None = None,
 ) -> dict[str, Path]:
     """Chạy simulator online không dùng action từ ML và xuất đầy đủ artifact của baseline."""
     adapter = OnlineSimulationAdapter(config_path, sla_path, seed=seed)
     raw_state_frames: list[pd.DataFrame] = []
 
-    while adapter.has_next_window():
-        state_window = adapter.run_one_window()
-        if state_window.empty:
-            continue
-        raw_state_frames.append(state_window)
+    with _legacy_output_log(log_path) as resolved_log_path:
+        while adapter.has_next_window():
+            state_window = adapter.run_one_window()
+            if state_window.empty:
+                continue
+            raw_state_frames.append(state_window)
+
+        if resolved_log_path is not None:
+            _write_legacy_run_summary(adapter.context)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -303,4 +368,6 @@ def run_online_baseline(
     }
     if policy_graph_path is not None:
         result["policy_graph_path"] = policy_graph_path
+    if log_path is not None:
+        result["log_path"] = Path(log_path)
     return result
