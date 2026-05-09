@@ -1,0 +1,60 @@
+{
+  "run": {
+    "timestamp": "2026-05-08T20:22:46",
+    "config_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\slicesim\\scenario-light.yml",
+    "model_dir": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\models\\sla_risk_gbdt",
+    "controller_type": "gbdt",
+    "controller_preset": "balanced_ml_v3_gentle",
+    "use_broker": true,
+    "broker_preset": "forecasting_balanced",
+    "seed": 999
+  },
+  "artifacts": {
+    "baseline": {
+      "raw_state_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_run\\baseline_states.csv",
+      "client_summary_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_run\\baseline_client_summary.csv",
+      "slice_completion_latency_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_run\\baseline_slice_completion_latency.csv",
+      "slice_first_service_latency_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_run\\baseline_slice_first_service_latency.csv",
+      "policy_graph_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_run\\baseline_simulation.png",
+      "log_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_run\\output.txt"
+    },
+    "ml": {
+      "state_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_states.csv",
+      "raw_state_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_states_raw.csv",
+      "prediction_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_predictions.csv",
+      "action_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_actions.csv",
+      "broker_forecast_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_broker_forecasts.csv",
+      "broker_feedback_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_broker_feedback.csv",
+      "client_summary_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_client_summary.csv",
+      "slice_completion_latency_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_slice_completion_latency.csv",
+      "slice_first_service_latency_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\online_slice_first_service_latency.csv",
+      "policy_graph_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\ml_policy_simulation.png",
+      "log_path": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_run\\output.txt"
+    },
+    "global_comparison_csv": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\global_kpi_comparison.csv",
+    "per_slice_comparison_csv": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\per_slice_comparison.csv",
+    "per_base_station_comparison_csv": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\per_base_station_comparison.csv",
+    "per_base_station_slice_comparison_csv": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\per_base_station_slice_comparison.csv",
+    "resource_allocation_summary_csv": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\resource_allocation_summary.csv",
+    "ml_action_ratio_timeseries_csv": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_action_ratio_timeseries.csv",
+    "plot_global_kpi": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_global_kpis.png",
+    "plot_per_slice_bars": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars.png",
+    "plot_per_slice_bars_svg": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars.svg",
+    "plot_per_slice_panel_images": {
+      "throughput": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars_throughput.png",
+      "latency": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars_latency.png",
+      "completion_ratio": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars_completion_ratio.png",
+      "sla_margin_improvement": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars_sla_margin_improvement.png",
+      "improvement_heatmap": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_per_slice_bars_improvement_heatmap.png"
+    },
+    "plot_timeseries": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\baseline_vs_ml_timeseries.png",
+    "plot_action_distribution": "C:\\Users\\LENOVO\\Downloads\\5G-Network-Slicing-main\\5G-Network-Slicing-with-GBDT-ML-Policy\\FINAL_OUTPUT_light_seed999_20260508_180957\\ml_action_distribution.png"
+  },
+  "tradeoff_notes": [
+    "URLLC completion latency changed by -0.00 ms and SLA safety margin changed by -0.0601 (-51.5%).",
+    "eMBB average bandwidth usage changed by 23.426 Mbps and completion ratio changed by 0.0037.",
+    "mMTC first-service latency changed by 0.00 ms and completion ratio changed by -0.0000.",
+    "URLLC recorded first-service latency changed by -0.00 ms on windows with actual first-service events.",
+    "Classic trade-off snapshot: if URLLC improved by 0.00 ms in latency, eMBB bandwidth moved by 23.426 Mbps."
+  ]
+}

@@ -1,0 +1,13 @@
+metric,value
+connected_clients_ratio,0.6172618666666667
+coverage_ratio,0.9995904
+block_ratio,0.0
+handover_ratio,0.0
+avg_slice_load_ratio,0.7250524151685009
+total_bandwidth_usage,1827132086.2246225
+avg_latency_ms,1.4656197483170568
+p95_latency_ms,11.40779309842308
+latency_violation_ratio,0.0
+avg_state_sla_violation_share,0.009
+bandwidth_jain_fairness,0.3622705354101082
+bandwidth_jain_fairness_min,0.3333333333333333
