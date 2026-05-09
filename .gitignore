@@ -7,9 +7,13 @@ env/
 .env
 .DS_Store
 
-FINAL_OUTPUT_*/
-artifacts/
-final_output/
-Outputs/
+# Track outputs by default, but ignore extremely large raw logs
+FINAL_OUTPUT_*/**/output.txt
+FINAL_OUTPUT_*/**/*_output.txt
+
+# Other optional output folders (uncomment if you want them tracked)
+# artifacts/
+# final_output/
+# Outputs/
 *.log
 *.tmp
