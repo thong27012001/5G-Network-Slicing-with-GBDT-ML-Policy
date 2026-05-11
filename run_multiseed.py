@@ -53,6 +53,7 @@ SCENARIOS = {
 DEFAULT_MODEL_DIR = "models/sla_risk_gbdt"
 DEFAULT_CONTROLLER_PRESET = "balanced_ml_v3_gentle"
 DEFAULT_BROKER_PRESET = "forecasting_balanced"
+LEGACY_OUTPUT_ARCHIVE_DIR = "FINAL_OUTPUT_#1"
 
 REPORT_KPIS = (
     "total_bandwidth_usage",
@@ -68,6 +69,28 @@ def _repo_root() -> Path:
 
 def _timestamp() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _resolve_output_root(path_value: str, repo_root: Path) -> Path:
+    """Return the parent directory where FINAL_OUTPUT_* folders are created.
+
+    FINAL_OUTPUT_#1 is kept as a reference/archive folder. New seed outputs must
+    be created next to it rather than nested inside it.
+    """
+    output_root = Path(path_value)
+    if not output_root.is_absolute():
+        output_root = repo_root / output_root
+    output_root = output_root.resolve()
+
+    if output_root.name == LEGACY_OUTPUT_ARCHIVE_DIR:
+        corrected = output_root.parent
+        print(
+            f"[warn] {LEGACY_OUTPUT_ARCHIVE_DIR} is an archive folder. "
+            f"New FINAL_OUTPUT_* folders will be created next to it: {corrected}"
+        )
+        return corrected
+
+    return output_root
 
 
 def _parse_seed_list(text: str) -> list[int] | None:
@@ -184,9 +207,7 @@ def _run_one(scenario: str, seed: int, args: argparse.Namespace) -> tuple[Path, 
     repo_root = _repo_root()
     cfg = SCENARIOS[scenario]
 
-    output_root = Path(args.output_root)
-    if not output_root.is_absolute():
-        output_root = repo_root / output_root
+    output_root = _resolve_output_root(args.output_root, repo_root)
 
     timestamp = _timestamp()
     output_dir = output_root / f"FINAL_OUTPUT_{scenario}_seed{seed}_{timestamp}"
@@ -324,7 +345,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-root",
         default=".",
-        help="Directory where FINAL_OUTPUT_<scenario>_seed<N>_<timestamp> dirs are created.",
+        help=(
+            "Parent directory where FINAL_OUTPUT_<scenario>_seed<N>_<timestamp> dirs are created. "
+            "Do not point this to FINAL_OUTPUT_#1; new runs are kept next to that archive folder."
+        ),
     )
     parser.add_argument(
         "--summary-csv",

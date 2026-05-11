@@ -104,6 +104,12 @@ artifact directory. Single-seed runs also include the seed in the folder name.
 Temporary raw comparison files are created under `logs/raw_runs/` and removed
 after the standardized output is produced unless `--keep-raw` is passed.
 
+By default, new `FINAL_OUTPUT_*` folders are written at the repository root,
+next to the reference/archive folder `FINAL_OUTPUT_#1/`. Do not use
+`FINAL_OUTPUT_#1/` as `--output-root`; if it is passed accidentally, the runner
+automatically redirects the new output to the parent directory so new runs stay
+side-by-side with `FINAL_OUTPUT_#1/`.
+
 ## Multi-Seed Statistical Runs
 
 `run_multiseed.py` automates multi-seed experiments across both scenarios. For
@@ -182,7 +188,8 @@ models/sla_risk_gbdt/
 
 ## Output Files
 
-Each run creates one standardized folder:
+Each run creates one standardized folder at the repository root, side-by-side
+with `FINAL_OUTPUT_#1/`:
 
 ```text
 FINAL_OUTPUT_<scenario>_seed<N>_<YYYYMMDD_HHMMSS>/

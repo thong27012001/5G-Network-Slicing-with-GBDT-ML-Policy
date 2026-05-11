@@ -32,6 +32,7 @@ SCENARIOS = {
 DEFAULT_MODEL_DIR = "models/sla_risk_gbdt"
 DEFAULT_CONTROLLER_PRESET = "balanced_ml_v3_gentle"
 DEFAULT_BROKER_PRESET = "forecasting_balanced"
+LEGACY_OUTPUT_ARCHIVE_DIR = "FINAL_OUTPUT_#1"
 
 
 def _repo_root() -> Path:
@@ -40,6 +41,28 @@ def _repo_root() -> Path:
 
 def _timestamp() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _resolve_output_root(path_value: str, repo_root: Path) -> Path:
+    """Return the parent directory where FINAL_OUTPUT_* folders are created.
+
+    FINAL_OUTPUT_#1 is an archived/reference output folder. New runs should be
+    created next to it, not inside it, so report folders remain easy to compare.
+    """
+    output_root = Path(path_value)
+    if not output_root.is_absolute():
+        output_root = repo_root / output_root
+    output_root = output_root.resolve()
+
+    if output_root.name == LEGACY_OUTPUT_ARCHIVE_DIR:
+        corrected = output_root.parent
+        print(
+            f"[warn] {LEGACY_OUTPUT_ARCHIVE_DIR} is an archive folder. "
+            f"New FINAL_OUTPUT_* folders will be created next to it: {corrected}"
+        )
+        return corrected
+
+    return output_root
 
 
 def _select_scenario(cli_value: str | None) -> str:
@@ -151,7 +174,14 @@ def build_parser() -> argparse.ArgumentParser:
             "If omitted, prompts interactively."
         ),
     )
-    parser.add_argument("--output-root", default=".", help="Directory where FINAL_OUTPUT_<scenario>_<timestamp> is created.")
+    parser.add_argument(
+        "--output-root",
+        default=".",
+        help=(
+            "Parent directory where FINAL_OUTPUT_<scenario>_seed<N>_<timestamp> is created. "
+            "Do not point this to FINAL_OUTPUT_#1; the runner will create new outputs next to that archive folder."
+        ),
+    )
     parser.add_argument("--model-dir", default=DEFAULT_MODEL_DIR, help="Path to the trained SLA-risk GBDT model directory.")
     parser.add_argument("--controller-preset", default=DEFAULT_CONTROLLER_PRESET, help="ML controller preset.")
     parser.add_argument("--broker-preset", default=DEFAULT_BROKER_PRESET, help="Forecasting broker preset.")
@@ -171,9 +201,7 @@ def main() -> None:
     seeds = _select_seeds(args.seed)
     multi_seed = len(seeds) > 1
 
-    output_root = Path(args.output_root)
-    if not output_root.is_absolute():
-        output_root = repo_root / output_root
+    output_root = _resolve_output_root(args.output_root, repo_root)
 
     raw_root = output_root / "logs" / "raw_runs"
     completed_dirs: list[Path] = []
