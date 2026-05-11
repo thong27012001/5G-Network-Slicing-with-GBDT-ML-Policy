@@ -1,0 +1,13 @@
+scenario,metric,n,mean_pct,std_pct
+light,avg_latency_ms,1,-0.1934,0.0000
+light,avg_slice_load_ratio,1,7.2627,0.0000
+light,avg_state_sla_violation_share,1,-24.5283,0.0000
+light,bandwidth_jain_fairness,1,-1.4037,0.0000
+light,bandwidth_jain_fairness_min,1,0.0000,0.0000
+light,block_ratio,1,0.0000,0.0000
+light,connected_clients_ratio,1,-0.1630,0.0000
+light,coverage_ratio,1,-0.0721,0.0000
+light,handover_ratio,1,0.0000,0.0000
+light,latency_violation_ratio,1,0.0000,0.0000
+light,p95_latency_ms,1,20.1042,0.0000
+light,total_bandwidth_usage,1,7.2627,0.0000

@@ -267,6 +267,7 @@ def organize_pipeline_outputs(
     model_dir: str | Path | None = None,
     training_report_dir: str | Path | None = None,
     output_root: str | Path = "final_output",
+    output_dir: str | Path | None = None,
     run_date: str | None = None,
     overwrite: bool = False,
 ) -> Path:
@@ -275,6 +276,7 @@ def organize_pipeline_outputs(
     model_dir = _resolve(repo_root, model_dir)
     training_report_dir = _resolve(repo_root, training_report_dir)
     output_root = _resolve(repo_root, output_root)
+    output_dir = _resolve(repo_root, output_dir)
     assert comparison_dir is not None
     assert output_root is not None
 
@@ -283,7 +285,7 @@ def organize_pipeline_outputs(
 
     safe_scenario = _safe_token(scenario)
     folder_name = f"output_{safe_scenario}_{_date_token(run_date)}"
-    pipeline_root = output_root / folder_name
+    pipeline_root = output_dir or (output_root / folder_name)
     if pipeline_root.exists():
         if overwrite:
             shutil.rmtree(pipeline_root)
@@ -337,6 +339,7 @@ def organize_pipeline_outputs(
         "completion_ratio_hit.png",
         "delay_hit_sla_tolerance.png",
         "delay_hit_relative_p75.png",
+        "p95_latency_vs_sla.png",
         "resource_utilization_cdf.png",
         "sla_style_kpi_definitions.md",
     ]
@@ -368,6 +371,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-dir", help="Trained model directory.")
     parser.add_argument("--training-report-dir", help="Optional training report/diagnostic directory.")
     parser.add_argument("--output-root", default="final_output")
+    parser.add_argument("--output-dir", help="Exact output directory. Overrides --output-root naming.")
     parser.add_argument("--run-date", help="Date token. Accepts DD/MM/YY, DD-MM-YY, or YYYY-MM-DD. Default: today.")
     parser.add_argument("--overwrite", action="store_true")
     return parser
@@ -381,6 +385,7 @@ def main() -> None:
         model_dir=args.model_dir,
         training_report_dir=args.training_report_dir,
         output_root=args.output_root,
+        output_dir=args.output_dir,
         run_date=args.run_date,
         overwrite=args.overwrite,
     )

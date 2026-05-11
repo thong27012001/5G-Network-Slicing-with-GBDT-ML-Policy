@@ -13,7 +13,13 @@ For each comparison run directory (e.g. artifacts/comparisons/e2e_*), produces:
                                           slice/policy
 
 Definitions (per UE, from client_summary.csv):
-    Completion-ratio Hit per UE = completion_ratio >= THROUGHPUT_HIT_RATIO (0.95)
+    Completion-ratio Hit per UE = completion_ratio >= per-slice threshold:
+        URLLC = 0.95, eMBB = 0.90, mMTC = 0.95
+        eMBB is lowered to 0.90 to avoid the simulation-cutoff artifact: with
+        ~10 requests per UE the intrinsic completion-ratio ceiling is ~0.90,
+        so a flat 0.95 threshold saturates eMBB at low values. URLLC and mMTC
+        stay at 0.95 because their per-UE workloads are not request-cutoff
+        bound and they reach 1.00 hit anyway.
 
     Delay Hit per UE (sla_tolerance mode):
         avg_completion_latency_ms <= delay_tolerance_per_slice
@@ -56,12 +62,58 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 
 SLICE_ORDER = ("URLLC", "eMBB", "mMTC")
-THROUGHPUT_HIT_RATIO = 0.95
+
+# Default per-slice completion-ratio hit threshold (used when scenario is
+# unknown). All slices use 0.95 by default.
+DEFAULT_COMPLETION_HIT_THRESHOLD = {"URLLC": 0.95, "eMBB": 0.95, "mMTC": 0.95}
+
+# Scenario-aware overrides. Heavy scenarios cap eMBB per-UE completion ratio
+# at ~0.90 due to simulation cutoff (~10 requests per UE), so a flat 0.95
+# threshold saturates eMBB at near-zero hit and hides any BL/ML difference.
+# Light scenarios reach higher per-UE completion ratios, so the default
+# 0.95 stays informative. URLLC and mMTC are not cutoff-bound and keep 0.95.
+SCENARIO_COMPLETION_HIT_THRESHOLD = {
+    "light": {"URLLC": 0.95, "eMBB": 0.95, "mMTC": 0.95},
+    "heavy": {"URLLC": 0.95, "eMBB": 0.90, "mMTC": 0.95},
+}
+
+# Backwards-compat alias kept for callers that imported the old name.
+SLICE_COMPLETION_HIT_THRESHOLD = DEFAULT_COMPLETION_HIT_THRESHOLD
+
 SLICE_COLOR = {"URLLC": "#2ca02c", "eMBB": "#d62728", "mMTC": "#1f77b4"}
+
+
+def thresholds_for_scenario(scenario: str | None) -> dict[str, float]:
+    """Return per-slice completion-ratio hit thresholds for a scenario name.
+
+    Falls back to DEFAULT_COMPLETION_HIT_THRESHOLD if the scenario is unknown
+    or None.
+    """
+    if scenario is None:
+        return DEFAULT_COMPLETION_HIT_THRESHOLD.copy()
+    return SCENARIO_COMPLETION_HIT_THRESHOLD.get(
+        scenario, DEFAULT_COMPLETION_HIT_THRESHOLD
+    ).copy()
 
 # Real SLA delay tolerance per slice (ms). Two sources are supported via
 # --tolerance-source flag.
 SCENARIO_DELAY_TOLERANCE_MS = {"URLLC": 1.0, "eMBB": 100.0, "mMTC": 500.0}
+
+# Per-(scenario, slice) p95 latency SLA targets (ms) — read from
+# sla_reference_<scenario>.csv (max_p95_latency_ms column). Used by the
+# p95_latency_vs_sla.png chart to show how BL/ML per-slice p95 compares to
+# the SLA p95 cap.
+SCENARIO_P95_SLA_TARGET_MS = {
+    "light": {"URLLC": 10.0, "eMBB": 30.0, "mMTC": 100.0},
+    "heavy": {"URLLC": 5.0, "eMBB": 40.0, "mMTC": 150.0},
+}
+
+
+def p95_targets_for_scenario(scenario: str | None) -> dict[str, float] | None:
+    """Return per-slice p95 SLA target (ms) for a scenario, or None if unknown."""
+    if scenario is None:
+        return None
+    return SCENARIO_P95_SLA_TARGET_MS.get(scenario)
 
 
 def _ensure_utf8_stdout() -> None:
@@ -102,14 +154,21 @@ def _load_sla_tolerance_from_table(sla_table_path: Path) -> dict[str, float]:
     return out
 
 
-def _throughput_hit(client_df: pd.DataFrame) -> dict[str, float]:
+def _throughput_hit(
+    client_df: pd.DataFrame,
+    thresholds: dict[str, float] | None = None,
+) -> dict[str, float]:
+    """Per-slice completion-ratio hit fraction using per-slice thresholds."""
+    if thresholds is None:
+        thresholds = DEFAULT_COMPLETION_HIT_THRESHOLD
     out = {}
     for slice_name in SLICE_ORDER:
         sub = client_df[client_df["slice_name"] == slice_name]
         if sub.empty:
             out[slice_name] = float("nan")
             continue
-        out[slice_name] = float((sub["completion_ratio"] >= THROUGHPUT_HIT_RATIO).mean())
+        threshold = thresholds.get(slice_name, 0.95)
+        out[slice_name] = float((sub["completion_ratio"] >= threshold).mean())
     return out
 
 
@@ -136,6 +195,21 @@ def _baseline_p75_thresholds(bl_client: pd.DataFrame) -> dict[str, float]:
             out[slice_name] = float("nan")
         else:
             out[slice_name] = float(np.percentile(baseline, 75))
+    return out
+
+
+def _per_slice_p95(client_df: pd.DataFrame) -> dict[str, float]:
+    """Per-slice 95th percentile of per-UE avg_completion_latency_ms (ms)."""
+    out: dict[str, float] = {}
+    for slice_name in SLICE_ORDER:
+        sub = client_df.loc[
+            client_df["slice_name"] == slice_name,
+            "avg_completion_latency_ms",
+        ]
+        if sub.empty:
+            out[slice_name] = float("nan")
+        else:
+            out[slice_name] = float(np.percentile(sub, 95))
     return out
 
 
@@ -205,6 +279,82 @@ def _plot_bar(
     plt.close(fig)
 
 
+def _plot_p95_vs_sla(
+    bl_p95: dict[str, float],
+    ml_p95: dict[str, float],
+    sla_p95: dict[str, float] | None,
+    output_path: Path,
+) -> None:
+    """Per-slice grouped bar: BL p95, ML p95, SLA target line (if available)."""
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    width = 0.35
+    x = np.arange(len(SLICE_ORDER))
+    bl_vals = [bl_p95.get(s, float("nan")) for s in SLICE_ORDER]
+    ml_vals = [ml_p95.get(s, float("nan")) for s in SLICE_ORDER]
+
+    ax.bar(x - width / 2, bl_vals, width, label="Baseline p95",
+           color="#d62728", hatch="...", edgecolor="white", linewidth=0.5, alpha=0.9)
+    ax.bar(x + width / 2, ml_vals, width, label="ML Policy p95",
+           color="#1f77b4", hatch="xxx", edgecolor="white", linewidth=0.5, alpha=0.9)
+
+    for i, (bv, mv) in enumerate(zip(bl_vals, ml_vals)):
+        if not np.isnan(bv):
+            ax.text(i - width / 2, bv, f"{bv:.2f}", ha="center", va="bottom", fontsize=8)
+        if not np.isnan(mv):
+            ax.text(i + width / 2, mv, f"{mv:.2f}", ha="center", va="bottom", fontsize=8)
+
+    annotation_lines: list[str] = []
+    if sla_p95 is not None:
+        for i, slice_name in enumerate(SLICE_ORDER):
+            target = sla_p95.get(slice_name)
+            if target is None or np.isnan(target):
+                continue
+            ax.hlines(
+                target,
+                xmin=i - width,
+                xmax=i + width,
+                colors="#2ca02c",
+                linestyles="--",
+                linewidth=1.6,
+                label="SLA p95 target" if i == 0 else None,
+            )
+            ax.text(i, target, f"  SLA={target:.0f}", color="#2ca02c",
+                    fontsize=7, ha="left", va="bottom")
+        sla_anno = ", ".join(
+            f"{s}={sla_p95[s]:.0f}ms" for s in SLICE_ORDER if not np.isnan(sla_p95.get(s, float("nan")))
+        )
+        annotation_lines.append(f"SLA p95 targets: {sla_anno}")
+        # Pass/fail status
+        status = []
+        for s in SLICE_ORDER:
+            target = sla_p95.get(s, float("nan"))
+            if np.isnan(target):
+                continue
+            bl_ok = "PASS" if bl_p95[s] <= target else "FAIL"
+            ml_ok = "PASS" if ml_p95[s] <= target else "FAIL"
+            status.append(f"{s}: BL={bl_ok}, ML={ml_ok}")
+        annotation_lines.append(" | ".join(status))
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(SLICE_ORDER)
+    ax.set_xlabel("Slice Type")
+    ax.set_ylabel("p95 completion latency (ms)")
+    max_val = max([v for v in bl_vals + ml_vals if not np.isnan(v)] + [0.1])
+    if sla_p95 is not None:
+        sla_max = max([v for v in sla_p95.values() if not np.isnan(v)] + [0])
+        max_val = max(max_val, sla_max)
+    ax.set_ylim(0, max_val * 1.18)
+    ax.legend(loc="upper left", fontsize=8)
+    ax.set_title("Per-slice p95 Completion Latency vs SLA Target")
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    if annotation_lines:
+        ax.text(0.5, -0.18, " | ".join(annotation_lines),
+                transform=ax.transAxes, ha="center", va="top", fontsize=7, color="0.4")
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def _plot_cdf(
     bl_state: pd.DataFrame,
     ml_state: pd.DataFrame,
@@ -249,6 +399,8 @@ def export_for_run(
     comparison_dir: Path,
     sla_tolerances: dict[str, float],
     tolerance_source: str,
+    completion_thresholds: dict[str, float] | None = None,
+    p95_sla_targets: dict[str, float] | None = None,
 ) -> list[Path]:
     bl_client_path = comparison_dir / "baseline_run" / "baseline_client_summary.csv"
     ml_client_path = comparison_dir / "ml_run" / "online_client_summary.csv"
@@ -263,9 +415,12 @@ def export_for_run(
     bl_state = _load_state(bl_state_path)
     ml_state = _load_state(ml_state_path)
 
-    # Completion-ratio hit (single mode: completion_ratio >= 0.95)
-    thr_bl = _throughput_hit(bl_client)
-    thr_ml = _throughput_hit(ml_client)
+    if completion_thresholds is None:
+        completion_thresholds = DEFAULT_COMPLETION_HIT_THRESHOLD.copy()
+
+    # Completion-ratio hit (per-slice thresholds)
+    thr_bl = _throughput_hit(bl_client, completion_thresholds)
+    thr_ml = _throughput_hit(ml_client, completion_thresholds)
 
     # Delay hit -- two modes:
     # 1) SLA tolerance: per-scenario absolute SLA threshold
@@ -276,21 +431,29 @@ def export_for_run(
     dly_bl_p75 = _delay_hit(bl_client, p75_thresholds)
     dly_ml_p75 = _delay_hit(ml_client, p75_thresholds)
 
+    # Per-slice p95 of per-UE completion latency (vs SLA p95 cap)
+    p95_bl = _per_slice_p95(bl_client)
+    p95_ml = _per_slice_p95(ml_client)
+
     out_thr = comparison_dir / "completion_ratio_hit.png"
     out_dly_sla = comparison_dir / "delay_hit_sla_tolerance.png"
     out_dly_p75 = comparison_dir / "delay_hit_relative_p75.png"
+    out_p95 = comparison_dir / "p95_latency_vs_sla.png"
     out_cdf = comparison_dir / "resource_utilization_cdf.png"
     out_note = comparison_dir / "sla_style_kpi_definitions.md"
     legacy_thr = comparison_dir / "sla_throughput_hit.png"
     legacy_thr.unlink(missing_ok=True)
 
+    completion_anno = ", ".join(
+        f"{s}>={completion_thresholds[s]:.2f}" for s in SLICE_ORDER
+    )
     _plot_bar(
         thr_bl,
         thr_ml,
         "Completion Ratio Hit Percentage",
         "Completion-Ratio Hit Percentage",
         out_thr,
-        annotation=f"Hit per UE: completion_ratio >= {THROUGHPUT_HIT_RATIO:.2f}",
+        annotation=f"Per-slice hit: completion_ratio >= ({completion_anno})",
     )
     sla_anno = ", ".join(
         f"{s}={sla_tolerances[s]:.0f}ms" for s in SLICE_ORDER if not pd.isna(sla_tolerances[s])
@@ -314,24 +477,34 @@ def export_for_run(
         out_dly_p75,
         annotation=f"Relative metric only: threshold = baseline p75 latency ({p75_anno})",
     )
+    _plot_p95_vs_sla(p95_bl, p95_ml, p95_sla_targets, out_p95)
     _plot_cdf(bl_state, ml_state, out_cdf)
 
+    p95_anno = ", ".join(f"{s}={p95_bl[s]:.3f}/{p95_ml[s]:.3f}ms" for s in SLICE_ORDER if not np.isnan(p95_bl[s]))
+    p95_sla_anno = (
+        ", ".join(f"{s}={p95_sla_targets[s]:.0f}ms" for s in SLICE_ORDER if not np.isnan(p95_sla_targets.get(s, float("nan"))))
+        if p95_sla_targets else "(not set; pass-fail line omitted)"
+    )
     note = f"""# SLA-Style KPI Plot Definitions
 
 These charts are auxiliary comparison plots. Use the names below precisely in the thesis/report.
 
-- `completion_ratio_hit.png`: per-UE completion-ratio hit. A UE is counted as hit when `completion_ratio >= {THROUGHPUT_HIT_RATIO:.2f}`. This is a completion target, not a 3GPP-defined throughput SLA unless the report explicitly defines it as such.
+- `completion_ratio_hit.png`: per-UE completion-ratio hit using **per-slice thresholds** ({completion_anno}). eMBB uses 0.90 instead of 0.95 to avoid the simulation-cutoff artifact (~10 requests per UE caps eMBB completion ratio at ~0.90); URLLC and mMTC keep 0.95 because their workloads are not request-cutoff bound and reach 1.00 anyway. This is a completion target, not a 3GPP-defined throughput SLA unless the report explicitly defines it as such.
 - `delay_hit_sla_tolerance.png`: per-UE delay hit against the scenario/SLA delay tolerance. This is the SLA-aligned delay-hit chart.
 - `delay_hit_relative_p75.png`: per-UE delay hit relative to the baseline p75 completion latency. This is a relative baseline comparison only, not a contractual SLA metric.
+- `p95_latency_vs_sla.png`: per-slice 95th percentile of per-UE `avg_completion_latency_ms`, grouped bars BL vs ML. When a scenario p95 SLA target is provided (`SCENARIO_P95_SLA_TARGET_MS`), a green dashed line shows the target and the annotation reports PASS/FAIL per (slice, policy).
 - `resource_utilization_cdf.png`: CDF of per-window `mean_slice_load_ratio` by slice and policy.
 
 Current delay tolerance source: `{tolerance_source}`.
-SLA delay thresholds: {sla_anno}.
+SLA delay thresholds (avg): {sla_anno}.
 Baseline-p75 relative thresholds: {p75_anno}.
+Completion-ratio hit thresholds: {completion_anno}.
+Per-slice p95 (BL/ML, ms): {p95_anno}.
+SLA p95 targets: {p95_sla_anno}.
 """
     out_note.write_text(note, encoding="utf-8")
 
-    print(f"[{comparison_dir.name}] Completion-ratio hit (BL/ML):")
+    print(f"[{comparison_dir.name}] Completion-ratio hit (BL/ML), thresholds: {completion_anno}")
     for s in SLICE_ORDER:
         print(f"    {s:6s}: {thr_bl[s]:.3f}  /  {thr_ml[s]:.3f}")
     print(f"[{comparison_dir.name}] Delay hit (SLA tolerance, source={tolerance_source}): {sla_anno}")
@@ -340,11 +513,24 @@ Baseline-p75 relative thresholds: {p75_anno}.
     print(f"[{comparison_dir.name}] Delay hit (relative baseline-p75, supplementary): {p75_anno}")
     for s in SLICE_ORDER:
         print(f"    {s:6s}: {dly_bl_p75[s]:.3f}  /  {dly_ml_p75[s]:.3f}")
+    print(f"[{comparison_dir.name}] Per-slice p95 (BL/ML ms) vs SLA target: {p95_sla_anno}")
+    for s in SLICE_ORDER:
+        target = p95_sla_targets.get(s, float("nan")) if p95_sla_targets else float("nan")
+        bl_v = p95_bl[s]
+        ml_v = p95_ml[s]
+        if np.isnan(target):
+            print(f"    {s:6s}: {bl_v:>7.3f}  /  {ml_v:>7.3f}  (no SLA target)")
+        else:
+            bl_ok = "PASS" if bl_v <= target else "FAIL"
+            ml_ok = "PASS" if ml_v <= target else "FAIL"
+            margin_bl = (target - bl_v) / target * 100 if target else float("nan")
+            margin_ml = (target - ml_v) / target * 100 if target else float("nan")
+            print(f"    {s:6s}: {bl_v:>7.3f}  /  {ml_v:>7.3f}   target={target:>6.1f}  BL={bl_ok}({margin_bl:+5.1f}%)  ML={ml_ok}({margin_ml:+5.1f}%)")
     print(
         f"[{comparison_dir.name}] Wrote: {out_thr.name}, {out_dly_sla.name}, "
-        f"{out_dly_p75.name}, {out_cdf.name}, {out_note.name}"
+        f"{out_dly_p75.name}, {out_p95.name}, {out_cdf.name}, {out_note.name}"
     )
-    return [out_thr, out_dly_sla, out_dly_p75, out_cdf, out_note]
+    return [out_thr, out_dly_sla, out_dly_p75, out_p95, out_cdf, out_note]
 
 
 def main() -> None:
@@ -369,6 +555,16 @@ def main() -> None:
         default=str(ROOT / "sla_reference_table.csv"),
         help="Path to sla_reference_table.csv (used when --tolerance-source=sla_table)",
     )
+    parser.add_argument(
+        "--scenario",
+        choices=sorted(SCENARIO_COMPLETION_HIT_THRESHOLD),
+        default=None,
+        help=(
+            "Scenario name to pick per-slice completion-ratio thresholds. "
+            "'heavy' lowers the eMBB threshold to 0.90 (cutoff-aware); "
+            "'light' uses 0.95 across slices. Default: DEFAULT_COMPLETION_HIT_THRESHOLD (all 0.95)."
+        ),
+    )
     args = parser.parse_args()
 
     if args.tolerance_source == "scenario_yaml":
@@ -386,10 +582,32 @@ def main() -> None:
         parser.error("Provide comparison dir paths or --all")
 
     for tgt in targets:
+        scenario = args.scenario or _guess_scenario_from_dirname(tgt.name)
+        completion_thresholds = thresholds_for_scenario(scenario)
+        p95_sla_targets = p95_targets_for_scenario(scenario)
         try:
-            export_for_run(tgt, sla_tolerances, args.tolerance_source)
+            export_for_run(
+                tgt,
+                sla_tolerances,
+                args.tolerance_source,
+                completion_thresholds=completion_thresholds,
+                p95_sla_targets=p95_sla_targets,
+            )
         except SystemExit as exc:
             print(f"[skip] {tgt}: {exc}")
+
+
+def _guess_scenario_from_dirname(name: str) -> str | None:
+    """Best-effort scenario inference from output dir name.
+
+    Recognises FINAL_OUTPUT_<scenario>_*, e2e_<scenario>_*, etc. Returns None
+    when no match is found so the caller falls back to defaults.
+    """
+    lowered = name.lower()
+    for scen in SCENARIO_COMPLETION_HIT_THRESHOLD:
+        if f"_{scen}_" in f"_{lowered}_" or lowered.startswith(f"{scen}_") or f"_{scen}-" in lowered:
+            return scen
+    return None
 
 
 if __name__ == "__main__":

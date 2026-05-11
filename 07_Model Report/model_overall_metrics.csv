@@ -1,0 +1,4 @@
+horizon,target_column,blend_weight,accuracy,roc_auc,calibration,split_strategy,sample_weight_mode,transition_weight_multiplier
+1,next_sla_violation_any_h1,0.1111111111111111,0.9545454545454546,0.9905644225372116,isotonic,stratified_time,class_balanced,3.0
+3,next_sla_violation_any_h3,0.3333333333333333,0.9797979797979798,0.9983198762370992,isotonic,stratified_time,class_balanced,3.0
+5,next_sla_violation_any_h5,0.5555555555555556,0.9949494949494949,0.9990250091328259,isotonic,stratified_time,class_balanced,3.0
