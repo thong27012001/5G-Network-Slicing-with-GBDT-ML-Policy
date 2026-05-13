@@ -15,7 +15,8 @@ FINAL_OUTPUT_*/**/online_states.csv
 FINAL_OUTPUT_*/**/online_states_raw.csv
 
 # Other optional output folders (uncomment if you want them tracked)
-# artifacts/
+artifacts/
+logs/
 # final_output/
 # Outputs/
 *.log
